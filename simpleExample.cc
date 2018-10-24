@@ -1,4 +1,5 @@
 #include <iostream>
+#include <array>
 
 #include "y15c_subroutine.h"
 
@@ -45,7 +46,7 @@ int main() {
     double ampT = 12.; //Amplitude (max. difference of month averages) [C]
     //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
     array<double, 5> init {0.,0.,0.,0.,0.}; //Initial State
-    array<double, 5> infall {0.5,0.1,0.1,0.2,0}; //Infall
+    array<double, 5> infall {0.5,0.1,0.1,0.2,0.}; //Infall
     array<double, 5> result;
     double diam {2.}; //size [cm]
     double leach {0.}; //Leaching
