@@ -1,4 +1,4 @@
-MODULE yasso
+MODULE yasso07
 IMPLICIT NONE
 CONTAINS
   SUBROUTINE mod5c(a,t,cl,init,inf,s,leac,z) !components separately
@@ -188,4 +188,4 @@ CONTAINS
         END IF
       END SUBROUTINE inverse
   END SUBROUTINE mod5c
-END MODULE yasso
+END MODULE yasso07
