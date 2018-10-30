@@ -204,7 +204,7 @@ namespace yasso {
     //Leaching (no leaching for humus) 
     if(leach < 0.) { //gk: orig calculates also for positive leach
       const double aux = leach * m3;
-      for(int i=0; i<3; ++i) {A[6*i] += aux;}
+      for(int i=0; i<4; ++i) {A[6*i] += aux;}
     }
     aIsSet=true;
     aIsDecomp=false;
@@ -253,7 +253,6 @@ namespace yasso {
 	matrixexp(At, mexpAt, taylorTerms);
 	MATMUL<5,5,1>(mexpAt,z1,z2);
       }
-      
       for(int i=0; i<5; ++i) {z2[i] -= infall[i];}
       if(!aIsDecomp) {
 	Crout<5>(A, Adecomp);
