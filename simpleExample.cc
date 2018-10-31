@@ -14,7 +14,7 @@ int main() {
   { //Original Yasso07
     float theta[27] = {-0.49,-4.9,-0.24,-0.095,0.44,0.25,0.92,0.99,0.084,0.011,0.00061,0.00048,0.066,0.00077,0.1,0.65,0.091,-0.00021,-1.8,-0.15,-0.02,-0.92,-0.44,1.3,-0.26,-0.0013,0.0046};
     float time {1.}; //Time to run
-    float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages) [C]
+    float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages / 2) [C]
     //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
     float init[5] {0.,0.,0.,0.,0.}; //Initial State
     float b[5] {0.5,0.1,0.1,0.2,0.}; //Infall
@@ -41,7 +41,7 @@ int main() {
   { //Original Yasso15
     float theta[35] = {0.49,4.9,0.24,0.095,0.44,0.25,0.92,0.99,0.084,0.011,0.00061,0.00048,0.066,0.00077,0.1,0.65,-0.15,-0.02,-0.92,-0.0004,-0.00017,0.091,-0.00021,0.049,-7.90E-05,0.035,-0.00021,-1.8,-1.2,-13,0.0046,0.0013,-0.44,1.3,0.26}; //Parameters
     float time {1.}; //Time to run
-    float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages) [C]
+    float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages / 2) [C]
     //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
     float init[5] {0.,0.,0.,0.,0.}; //Initial State
     float b[5] {0.5,0.1,0.1,0.2,0.}; //Infall
@@ -70,7 +70,7 @@ int main() {
     double time {1.}; //Time to run
     double avgT = 10.; //Temp annual average [C]
     double sumP = 600.; //Precip annual summ [mm]
-    double ampT = 12.; //Amplitude (max. difference of month averages) [C]
+    double ampT = 12.; //Amplitude (max. difference of month averages / 2) [C]
     //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
     array<double, 5> init {0.,0.,0.,0.,0.}; //Initial State
     array<double, 5> infall {0.5,0.1,0.1,0.2,0.}; //Infall
@@ -82,8 +82,9 @@ int main() {
     
     cout << "\nRewritten Yasso15" << endl;
     yasso.setClimSizeLeach(avgT, sumP, ampT, diam, leach);
+    yasso.setTimespan(time);
     for(int year=0; year<10; ++year) {
-      yasso.getNextTimestep(init, infall, init, time, 0); //Write result in init
+      yasso.getNextTimestep(init, infall, init, 0); //Write result in init
       cout << year;
       for(int i=0; i<5; ++i) {cout << " " << init[i];}
       cout << endl;

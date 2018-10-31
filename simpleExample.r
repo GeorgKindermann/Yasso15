@@ -6,7 +6,7 @@ infall <- c(0.5,0.1,0.1,0.2,0) #0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2.
 time <- 1   #Time to run
 avgT <- 10  #Temp annual average [C]
 sumP <- 600 #Precip annual summ [mm]
-ampT <- 12  #Amplitude (max. difference of month averages) [C]
+ampT <- 12  #Amplitude (max. difference of month averages / 2) [C]
 diam <- 2   #size [cm]
 leach <- 0  #Leaching
 

@@ -135,7 +135,7 @@ namespace yasso {
     theta[31] = -std::fabs(theta[31]);
     theta[34] = -std::fabs(theta[34]);
     for(int i=0; i<4; ++i) {theta[i] = -std::fabs(theta[i]);}
-    aIsSet = false;
+    aNeedToBeSet=true;
   }
 
   void yasso15::setClimSizeLeach(const double& avgT, const double& sumP, const double& ampT, const double& diam, const double& leach) {
@@ -206,62 +206,77 @@ namespace yasso {
       const double aux = leach * m3;
       for(int i=0; i<4; ++i) {A[6*i] += aux;}
     }
-    aIsSet=true;
-    aIsDecomp=false;
+    aNeedToBeSet=false;
+    aNeedToBeDecomp=true;
+    aNeedToBeExpo=true;
   }
 
   void yasso15::getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result) {
-    if(noDecomposition) {
-      for(int i=0; i<5; ++i) {
-	if(infall[i] > 0.) {result[i] = std::numeric_limits<double>::infinity();
-	} else {result[i] = 0.;}
-      }
-      return;
-    }
-    if(aIsSet) {
-      if(!aIsDecomp) {
-	Crout<5>(A, Adecomp);
-	aIsDecomp = true;
-      }
-      solveCrout<5>(Adecomp, infall, result);
-      for(int i=0; i<5; ++i) {result[i] *= -1.;}
-    } else {
+    if(aNeedToBeSet) {
       for(int i=0; i<5; ++i) {
 	result[i] = std::numeric_limits<double>::quiet_NaN();
+      }
+    } else {
+      if(noDecomposition) {
+	for(int i=0; i<5; ++i) {
+	  if(infall[i] > 0.) {result[i] = std::numeric_limits<double>::infinity();
+	  } else {result[i] = 0.;}
+	}
+      } else {
+	if(aNeedToBeDecomp) {
+	  Crout<5>(A, Adecomp);
+	  aNeedToBeDecomp=false;
+	}
+	solveCrout<5>(Adecomp, infall, result);
+	for(int i=0; i<5; ++i) {result[i] *= -1.;}
       }
     }
   }
 
-  void yasso15::getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result, const double timespan, const int fun) {
-    if(noDecomposition) {
-      for(int i=0; i<5; ++i) {result[i] += infall[i];}
-      return;
-    }
-    if(aIsSet) {
+  void yasso15::setTimespan(const double& atimespan) {
+    timespan = atimespan;
+    aNeedToBeExpo=true;
+  }
+
+  size_t yasso15::setTaylorTerms(const size_t& ataylorTerms) {
+    taylorTerms = ataylorTerms+1;
+    return(taylorTerms-1);
+  }
+
+  void yasso15::getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result, const int fun) {
+    if(aNeedToBeSet) {
+      for(int i=0; i<5; ++i) {
+	result[i] = std::numeric_limits<double>::quiet_NaN();
+      }
+    } else {
+      if(noDecomposition) {
+	for(int i=0; i<5; ++i) {result[i] += infall[i];}
+	return;
+      } else {
       //Solve the differential equation x'(t) = A(theta)*x(t) + b, x(0) = init
       //Solve DE in given time
       //Solve Matrix Differential equation Taylor x'(t) = Ax(t) + b
-      MATMUL<5,5,1>(A,init,z1);
-      for(int i=0; i<5; ++i) {z1[i] += infall[i];}
-      for(int i=0; i<5*5; ++i) {At[i] = A[i] * timespan;}
-      switch(fun) {
-      case 1: //Using Expotit
-	dgchbv(At, z1, z2);
-	break;
-      default: //Use default function from Yasso15
-	mexpAt.fill(0.);
-	matrixexp(At, mexpAt, taylorTerms);
-	MATMUL<5,5,1>(mexpAt,z1,z2);
-      }
-      for(int i=0; i<5; ++i) {z2[i] -= infall[i];}
-      if(!aIsDecomp) {
-	Crout<5>(A, Adecomp);
-	aIsDecomp = true;
-      }
-      solveCrout<5>(Adecomp, z2, result);
-    } else {
-      for(int i=0; i<5; ++i) {
-	result[i] = std::numeric_limits<double>::quiet_NaN();
+	MATMUL<5,5,1>(A,init,z1);
+	for(int i=0; i<5; ++i) {z1[i] += infall[i];}
+	for(int i=0; i<5*5; ++i) {At[i] = A[i] * timespan;}
+	switch(fun) {
+	case 1: //Using Expokit
+	  dgchbv(At, z1, z2);
+	  break;
+	default: //Use default function from Yasso15
+	  if(aNeedToBeExpo) {
+	    mexpAt.fill(0.);
+	    matrixexp(At, mexpAt, taylorTerms);
+	    aNeedToBeExpo = false;
+	  }
+	  MATMUL<5,5,1>(mexpAt,z1,z2);
+	}
+	for(int i=0; i<5; ++i) {z2[i] -= infall[i];}
+	if(aNeedToBeDecomp) {
+	  Crout<5>(A, Adecomp);
+	  aNeedToBeDecomp = false;
+	}
+	solveCrout<5>(Adecomp, z2, result);
       }
     }
   }
