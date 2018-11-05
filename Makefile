@@ -29,7 +29,7 @@ simpleExample:	simpleExample.cc y15_subroutine.o y07_subroutine.o y15c_subroutin
 
 simplePerformance: simplePerformance.cc y15_subroutine.o y15c_subroutine.o dgchbv.o lapack.o blas.o
 	g++ $(OP) $(WR) -std=c++17 simplePerformance.cc -osimplePerformance y15_subroutine.o y15c_subroutine.o -lgfortran -L/usr/local/lib64/ -Wl,-rpath -Wl,/usr/local/lib64/ dgchbv.o lapack.o blas.o -Wno-unused-variable
-	strip simpleExample
+	strip simplePerformance
 
 clean:
 	rm y15_subroutine.o y07_subroutine.o y15c_subroutine.o dgchbv.o lapack.o blas.o simpleExample simplePerformance

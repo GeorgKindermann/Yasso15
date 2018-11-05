@@ -1,7 +1,11 @@
 #include <cmath>
 
-#include "y15c_subroutine.h"
+#include "y15cAtlas_subroutine.h"
 
+extern "C" {
+#include <atlas/cblas.h>
+}
+  
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -10,10 +14,6 @@ namespace {
 
   struct complex {double realnum, imagnum;};
 
-  extern"C" {
-    void dgchbv_(int *m, double *t, double *H, int *ldh, double *y, complex *wsp, int *iwsp, int *iflag);
-  }
-  
   //https://github.com/ngocson2vn/MPM/blob/master/547_546-parallel-GIMP/0main/fit.cpp
   //http://www.sci.utah.edu/~wallstedt/LU.htm
   //Philip Wallstedt
@@ -48,27 +48,23 @@ namespace {
 
   //Matrixmultiplication
   template<int N, int M, int P> void MATMUL(const std::array<double,N*M> &A, const std::array<double,M*P> &B, std::array<double,N*P> &C) {
-    double sum;
     if(&B == &C) {
-      std::array<double,N*P> RES;
-      for (int p=0; p<P; ++p) {
-	for (int n=0; n<N; ++n) {
-	  sum = 0.;
+      std::array<double,N*P> RES{0.};
+      for (int n=0; n<N; ++n) {
+	for (int p=0; p<P; ++p) {
 	  for (int m=0; m<M; ++m) {
-	    sum += A[n*M+m] * B[m*P+p];
+	    RES[n*P+p] += A[n*M+m] * B[m*P+p];
 	  }
-	  RES[n*P+p] = sum;
 	}
       }
       for (int i=0; i<N*P; ++i) {C[i] = RES[i];}
     } else {
-      for (int p=0; p<P; ++p) {
-	for (int n=0; n<N; ++n) {
-	  sum = 0.;
+      C.fill(0.);
+      for (int n=0; n<N; ++n) {
+	for (int p=0; p<P; ++p) {
 	  for (int m=0; m<M; ++m) {
-	    sum += A[n*M+m] * B[m*P+p];
+	    C[n*P+p] += A[n*M+m] * B[m*P+p];
 	  }
-	  C[n*P+p] = sum;
 	}
       }
     }
@@ -102,25 +98,14 @@ namespace {
     for(int i=0; i<25; ++i) {B[i] += C[i];}
     for(int i=0; i<25; ++i) {D[i] = C[i];}
     for(size_t i=2; i<q; ++i) { //compute Taylor expansion
-      MATMUL<5,5,5>(C,D,D);
+      cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 5, 5, 5, 1., C.data(), 5, D.data(), 5, 1., D.data(), 5);
+      //MATMUL<5,5,5>(C,D,D);
       for(int j=0; j<25; ++j) {D[j] /= double(i);}
       for(int i=0; i<25; ++i) {B[i] += D[i];}
     }
     for(int i=1; i<j; ++i) { //square
       MATMUL<5,5,5>(B,B,B);
     }
-  }
-
-  //https://github.com/blackrim/lagrange/tree/master/src
-  //Krylov Chebyshev matrix exp
-  //https://www.maths.uq.edu.au/expokit/
-  //Compute exp(A * t) * v using Chebyshev
-  void dgchbv(std::array<double, 5*5>& A, const std::array<double, 5>& v, std::array<double, 5>& e) {
-    int m{5}, ldh{5}, iflag, iwsp[5];
-    double t{1.};
-    complex wsp[2*5*(5+2)];
-    for(int i=0; i<5; ++i) {e[i] = v[i];}
-    dgchbv_(&m, &t, A.data(), &ldh, e.data(), wsp, iwsp, &iflag);
   }
 
 }
@@ -266,7 +251,7 @@ namespace yasso {
 	for(int i=0; i<5*5; ++i) {At[i] = A[i] * timespan;}
 	switch(fun) {
 	case 1: //Using Expokit
-	  dgchbv(At, z1, z2);
+	  //dgchbv(At, z1, z2);
 	  break;
 	default: //Use default function from Yasso15
 	  if(aNeedToBeExpo) {
