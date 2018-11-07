@@ -12,3 +12,7 @@ To the original method, calculating matrix exponential with Taylor series, a met
 
 A simple example shows the usage inside C++ and R.
 
+
+# Yasso15 for R Users
+
+Simply download [simpleExample.r](https://raw.githubusercontent.com/GeorgKindermann/Yasso15/master/simpleExample.r) showing how to use it and if you want a local copy of the function also download [y15_subroutine.r](https://raw.githubusercontent.com/GeorgKindermann/Yasso15/master/y15_subroutine.r).

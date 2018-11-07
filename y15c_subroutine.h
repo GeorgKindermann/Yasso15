@@ -32,7 +32,7 @@ namespace yasso {
  //timespann .. Time to run the model for one time step
     void setTimespan(const double& timespan);
     bool isThereDecomposition() {return(!noDecomposition);}
- //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus : in init, infall an result
+ //0..Acid soluble (Celluloses), 1..Water sol.(sugar), 2..Ethanol sol.(waxes), 3..Insoluble (lignin), 4..Humus
     void getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result);
  //fun ... 0..Calculat exp(A) with Taylor, 1..Calculat exp(A)*x with Expokit
     void getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result, const int fun=0);

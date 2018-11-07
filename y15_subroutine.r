@@ -65,10 +65,10 @@ yasso.getNextTimestep <- function(theta, avgT, sumP, ampT, diam, leach, init, in
   z2 <- expm(At) %*% z1
 #Alternatives 
 #library(expm)
-#z2 <- expAtv(A,z1)$eAtv
+#z2 <- expAtv(At,z1)$eAtv
 #
 #library(expoRkit)
-#z2 <- expv(A, z1)
+#z2 <- expv(At, z1)
   z2 <- z2 - infall
   as.vector(solve(A, z2))
 }

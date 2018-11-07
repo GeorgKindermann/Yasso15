@@ -15,7 +15,7 @@ int main() {
     float theta[27] = {-0.49,-4.9,-0.24,-0.095,0.44,0.25,0.92,0.99,0.084,0.011,0.00061,0.00048,0.066,0.00077,0.1,0.65,0.091,-0.00021,-1.8,-0.15,-0.02,-0.92,-0.44,1.3,-0.26,-0.0013,0.0046};
     float time {1.}; //Time to run
     float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages / 2) [C]
-    //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
+    //0..Acid soluble (Celluloses), 1..Water sol.(sugar), 2..Ethanol sol.(waxes), 3..Insoluble (lignin), 4..Humus
     float init[5] {0.,0.,0.,0.,0.}; //Initial State
     float b[5] {0.5,0.1,0.1,0.2,0.}; //Infall
     float xt[5] {0.,0.,0.,0.,0.}; //Result
@@ -42,7 +42,7 @@ int main() {
     float theta[35] = {0.49,4.9,0.24,0.095,0.44,0.25,0.92,0.99,0.084,0.011,0.00061,0.00048,0.066,0.00077,0.1,0.65,-0.15,-0.02,-0.92,-0.0004,-0.00017,0.091,-0.00021,0.049,-7.90E-05,0.035,-0.00021,-1.8,-1.2,-13,0.0046,0.0013,-0.44,1.3,0.26}; //Parameters
     float time {1.}; //Time to run
     float climate[3] {10., 600., 12.}; //Temp annual average [C], precip annual summ [mm], amplitude (max. difference of month averages / 2) [C]
-    //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
+    //0..Acid soluble (Celluloses), 1..Water sol.(sugar), 2..Ethanol sol.(waxes), 3..Insoluble (lignin), 4..Humus
     float init[5] {0.,0.,0.,0.,0.}; //Initial State
     float b[5] {0.5,0.1,0.1,0.2,0.}; //Infall
     float xt[5] {0.,0.,0.,0.,0.}; //Result
@@ -71,7 +71,7 @@ int main() {
     double avgT = 10.; //Temp annual average [C]
     double sumP = 600.; //Precip annual summ [mm]
     double ampT = 12.; //Amplitude (max. difference of month averages / 2) [C]
-    //0..Ethanol sol.(waxes), 1..Water sol.(sugar), 2..Acid soluble (Celluloses), 3..Insoluble (lignin), 4..Humus
+    //0..Acid soluble (Celluloses), 1..Water sol.(sugar), 2..Ethanol sol.(waxes), 3..Insoluble (lignin), 4..Humus
     array<double, 5> init {0.,0.,0.,0.,0.}; //Initial State
     array<double, 5> infall {0.5,0.1,0.1,0.2,0.}; //Infall
     array<double, 5> result;

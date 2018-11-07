@@ -1,4 +1,5 @@
 #include <cmath>
+#include <complex>
 
 #include "y15c_subroutine.h"
 
@@ -8,70 +9,52 @@
 
 namespace {
 
-  struct complex {double realnum, imagnum;};
-
-  extern"C" {
-    void dgchbv_(int *m, double *t, double *H, int *ldh, double *y, complex *wsp, int *iwsp, int *iflag);
-  }
-  
   //https://github.com/ngocson2vn/MPM/blob/master/547_546-parallel-GIMP/0main/fit.cpp
   //http://www.sci.utah.edu/~wallstedt/LU.htm
   //Philip Wallstedt
   //Decompose
-  template<const int d>inline void Crout(const std::array<double,d*d>& a, std::array<double,d*d>& A){
+  template<const int d, typename T>inline void Crout(const std::array<T,d*d>& a, std::array<T,d*d>& A){
     for(int k=0;k<d;++k){
       for(int i=k;i<d;++i){
-	double sum=0.;
+	T sum=0.;
 	for(int p=0;p<k;++p)sum+=A[i*d+p]*A[p*d+k];
 	A[i*d+k]=a[i*d+k]-sum;
       }
       for(int j=k+1;j<d;++j){
-	double sum=0.;
+	T sum=0.;
 	for(int p=0;p<k;++p)sum+=A[k*d+p]*A[p*d+j];
 	A[k*d+j]=(a[k*d+j]-sum)/A[k*d+k];
       }
     }
   }
-  template<const int d>inline void solveCrout(const std::array<double,d*d>& A, const std::array<double,d>& b, std::array<double,d>& x){
-    std::array<double,d> y;
+  template<const int d, typename T>inline void solveCrout(const std::array<T,d*d>& A, const std::array<T,d>& b, std::array<T,d>& x){
+    std::array<T,d> y;
     for(int i=0;i<d;++i){
-      double sum=0.;
+      T sum=0.;
       for(int k=0;k<i;++k)sum+=A[i*d+k]*y[k];
       y[i]=(b[i]-sum)/A[i*d+i];
     }
     for(int i=d-1;i>=0;--i){
-      double sum=0.;
+      T sum=0.;
       for(int k=i+1;k<d;++k)sum+=A[i*d+k]*x[k];
       x[i]=(y[i]-sum);
     }
   }
 
   //Matrixmultiplication
-  template<int N, int M, int P> void MATMUL(const std::array<double,N*M> &A, const std::array<double,M*P> &B, std::array<double,N*P> &C) {
-    double sum;
-    if(&B == &C) {
-      std::array<double,N*P> RES;
-      for (int p=0; p<P; ++p) {
-	for (int n=0; n<N; ++n) {
-	  sum = 0.;
-	  for (int m=0; m<M; ++m) {
-	    sum += A[n*M+m] * B[m*P+p];
-	  }
-	  RES[n*P+p] = sum;
+  template<int M, int N, int P, typename T> void MATMUL(const std::array<T,M*N> &A, const std::array<T,N*P> &B, std::array<T,M*P> &C) {
+    std::array<T,M*P> TMP;
+    std::array<T,M*P>& RES = (B.data() == C.data() || A.data() == C.data()) ? TMP : C;
+    for (int p=0; p<P; ++p) {
+      for (int m=0; m<M; ++m) {
+	T sum = A[m*N] * B[p];
+	for (int n=1; n<N; ++n) {
+	  sum += A[m*N+n] * B[n*P+p];
 	}
-      }
-      for (int i=0; i<N*P; ++i) {C[i] = RES[i];}
-    } else {
-      for (int p=0; p<P; ++p) {
-	for (int n=0; n<N; ++n) {
-	  sum = 0.;
-	  for (int m=0; m<M; ++m) {
-	    sum += A[n*M+m] * B[m*P+p];
-	  }
-	  C[n*P+p] = sum;
-	}
+	RES[m*P+p] = sum;
       }
     }
+    if(&RES != &C) {for (int i=0; i<M*P; ++i) {C[i] = RES[i];}}
   }
 
   //Functions for solving the diff. equation, adapted for the Yasso case
@@ -114,13 +97,35 @@ namespace {
   //https://github.com/blackrim/lagrange/tree/master/src
   //Krylov Chebyshev matrix exp
   //https://www.maths.uq.edu.au/expokit/
-  //Compute exp(A * t) * v using Chebyshev
-  void dgchbv(std::array<double, 5*5>& A, const std::array<double, 5>& v, std::array<double, 5>& e) {
-    int m{5}, ldh{5}, iflag, iwsp[5];
-    double t{1.};
-    complex wsp[2*5*(5+2)];
-    for(int i=0; i<5; ++i) {e[i] = v[i];}
-    dgchbv_(&m, &t, A.data(), &ldh, e.data(), wsp, iwsp, &iflag);
+  //Compute exp(A * t) * v using Chebyshev (Small dense routines)
+  void dgchbv(std::array<double, 5*5>& H, const std::array<double, 5>& x, std::array<double, 5>& e) {
+    double alpha0   =  0.183216998528140087E-11;
+    std::complex<double> alpha[7] = {{-0.557503973136501826E+02, 0.204295038779771857E+03}, {0.938666838877006739E+02, -0.912874896775456363E+02}, {-0.469965415550370835E+02, 0.116167609985818103E+02}, {0.961424200626061065E+01, 0.264195613880262669E+01}, {-0.752722063978321642E+00, -0.670367365566377770E+00}, {0.188781253158648576E-01, 0.343696176445802414E-01}, {-0.143086431411801849E-03, -0.287221133228814096E-03}};
+    std::complex<double> theta[7] = {{0.562314417475317895E+01, -0.119406921611247440E+01}, {0.508934679728216110E+01, -0.358882439228376881E+01}, {0.399337136365302569E+01, -0.600483209099604664E+01}, {0.226978543095856366E+01, -0.846173881758693369E+01}, {-0.208756929753827868E+00, -0.109912615662209418E+02}, {-0.370327340957595652E+01, -0.136563731924991884E+02}, {-0.889777151877331107E+01, -0.166309842834712071E+02}};
+    for(int i=0; i<5; ++i) {e[i] = alpha0 * x[i];}
+    std::array<double, 5*5> I;
+    I.fill(0.);
+    for(int i=0; i<5*5; i+=6) {I[i] = 1.;}
+    for(int i=0; i<7; ++i) {
+      std::array<std::complex<double>,5*5> hti;
+      for(int j=0; j<5*5; ++j) {hti[j] = H[j] - theta[i] * I[j];}
+      std::array<std::complex<double>,5> ai;
+      for(int j=0; j<5; ++j) {ai[j] = alpha[i] * x[j];}
+      //inv(hti)
+      std::array<std::complex<double>,5*5> htiDec;
+      Crout<5>(hti, htiDec);
+      std::array<std::complex<double>,5*5> htiInv;
+      std::array<std::complex<double>,5> htiInvc;
+      std::array<std::complex<double>,5> II;
+      for(int j=0; j<5; ++j) {
+	II.fill(0.);
+	II[j] = 1.;
+	solveCrout<5>(htiDec, II, htiInvc);
+	for(int k=0; k<5; ++k) {htiInv[k*5+j] = htiInvc[k];}
+      }
+      MATMUL<5,5,1>(htiInv,ai,ai);
+      for(int j=0; j<5; ++j) {e[j] += ai[j].real();}
+    }
   }
 
 }
