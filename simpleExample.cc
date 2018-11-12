@@ -84,7 +84,7 @@ int main() {
     yasso.setClimSizeLeach(avgT, sumP, ampT, diam, leach);
     yasso.setTimespan(time);
     for(int year=0; year<10; ++year) {
-      yasso.getNextTimestep(init, infall, init, 0); //Write result in init
+      yasso.getNextTimestep(init, infall, init); //Write result in init
       cout << year;
       for(int i=0; i<5; ++i) {cout << " " << init[i];}
       cout << endl;

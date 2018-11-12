@@ -33,9 +33,9 @@ namespace yasso {
     void setTimespan(const double& timespan);
     bool isThereDecomposition() {return(!noDecomposition);}
  //0..Acid soluble (Celluloses), 1..Water sol.(sugar), 2..Ethanol sol.(waxes), 3..Insoluble (lignin), 4..Humus
-    //years need to be set in case there is no decomposition
-    void getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result, const int years=700);
-    void getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result);
+    void getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result);
+ //fun ... 0..Calculat exp(A) with Taylor, 1..Calculat exp(A)*x with Expokit
+    void getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result, const int fun=0);
  //taylorTerms .. number terms to compute exp(A) with Taylor - Yasso default=10, accurate enough might be ~ 6
     size_t setTaylorTerms(const size_t& taylorTerms);
   private:
@@ -43,10 +43,12 @@ namespace yasso {
     std::array<double, 35> theta;
     std::array<double, 5*5> A;
     std::array<double, 5*5> Adecomp;
-    std::array<double, 5*5> mexpAt;
     double tol = 1.E-12;
+    std::array<double, 5> z1, z2;
+    std::array<double, 5*5> At;
+    std::array<double, 5*5> mexpAt;
     size_t taylorTerms = 11;
-    //bool aNeedToBeSet=true;
+    bool aNeedToBeSet=true;
     bool aNeedToBeDecomp=true;
     bool aNeedToBeExpo=true;
     bool noDecomposition = true;

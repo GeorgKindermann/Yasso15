@@ -58,36 +58,73 @@ namespace {
   }
 
   //Functions for solving the diff. equation, adapted for the Yasso case
-  template<int M, typename T> T matrixnorm(const std::array<T, M*M>& A) {
+  void matrixnorm(const std::array<double, 5*5>& A, double& b) {
     //returns elementwise (i.e. Frobenius) norm of a square matrix
-    T b = 0.;
-    for(int i=0; i<M*M; ++i) {b += A[i]*A[i];}
-    return(sqrt(b));
+    const int n=5;
+    b = 0.;
+    for(int i=0; i<n*n; ++i) {b += A[i]*A[i];}
+    b = sqrt(b);
   }
-  template<int M, typename T> void matrixexp(const std::array<T, M*M>& A, std::array<T, M*M>& B, const size_t& q) {
+  void matrixexp(const std::array<double, 5*5>& A, std::array<double, 5*5>& B, const size_t& q) {
     //Approximated matrix exponential using Taylor series with scaling & squaring
     //Accurate enough for the Yasso case
+    const int n=5;
     //int q = 11; // #terms in Taylor  gk: possibility to reduce to speed up
     //expect B is initialized:  for(int i=0; i<25; ++i) {B[i] = 0.;}
-    for(int i=0; i<M; ++i) {B[i*(M+1)] = 1.;}
-    T normiter = 2.; // Amount of scaling & squaring
+    for(int i=0; i<n; ++i) {B[i*6] = 1.;}
+    double normiter = 2.; // Amount of scaling & squaring
     int j=2;
-    T p = matrixnorm<M>(A);
+    double p;
+    matrixnorm(A, p);
     while(p>normiter) {
       normiter *= 2.;
       ++j;
     }
-    std::array<T, M*M> C,D;
-    for(int i=0; i<M*M; ++i) {C[i] = A[i]/normiter;} //scale
-    for(int i=0; i<M*M; ++i) {B[i] += C[i];}
-    for(int i=0; i<M*M; ++i) {D[i] = C[i];}
+    std::array<double, 5*5> C,D;
+    for(int i=0; i<25; ++i) {C[i] = A[i]/normiter;} //scale
+    for(int i=0; i<25; ++i) {B[i] += C[i];}
+    for(int i=0; i<25; ++i) {D[i] = C[i];}
     for(size_t i=2; i<q; ++i) { //compute Taylor expansion
-      MATMUL<M,M,M>(C,D,D);
-      for(int j=0; j<M*M; ++j) {D[j] /= T(i);}
-      for(int i=0; i<M*M; ++i) {B[i] += D[i];}
+      MATMUL<5,5,5>(C,D,D);
+      for(int j=0; j<25; ++j) {D[j] /= double(i);}
+      for(int i=0; i<25; ++i) {B[i] += D[i];}
     }
     for(int i=1; i<j; ++i) { //square
-      MATMUL<M,M,M>(B,B,B);
+      MATMUL<5,5,5>(B,B,B);
+    }
+  }
+
+  //https://github.com/blackrim/lagrange/tree/master/src
+  //Krylov Chebyshev matrix exp
+  //https://www.maths.uq.edu.au/expokit/
+  //Compute exp(A * t) * v using Chebyshev (Small dense routines)
+  template<int N, typename T> void dgchbv(std::array<T, N*N>& H, const std::array<T, N>& x, std::array<T, N>& e) {
+    double alpha0   =  0.183216998528140087E-11;
+    std::complex<double> alpha[7] = {{-0.557503973136501826E+02, 0.204295038779771857E+03}, {0.938666838877006739E+02, -0.912874896775456363E+02}, {-0.469965415550370835E+02, 0.116167609985818103E+02}, {0.961424200626061065E+01, 0.264195613880262669E+01}, {-0.752722063978321642E+00, -0.670367365566377770E+00}, {0.188781253158648576E-01, 0.343696176445802414E-01}, {-0.143086431411801849E-03, -0.287221133228814096E-03}};
+    std::complex<double> theta[7] = {{0.562314417475317895E+01, -0.119406921611247440E+01}, {0.508934679728216110E+01, -0.358882439228376881E+01}, {0.399337136365302569E+01, -0.600483209099604664E+01}, {0.226978543095856366E+01, -0.846173881758693369E+01}, {-0.208756929753827868E+00, -0.109912615662209418E+02}, {-0.370327340957595652E+01, -0.136563731924991884E+02}, {-0.889777151877331107E+01, -0.166309842834712071E+02}};
+    for(int i=0; i<N; ++i) {e[i] = alpha0 * x[i];}
+    std::array<T, N*N> I;
+    I.fill(0.);
+    for(int i=0; i<N*N; i+=N+1) {I[i] = 1.;}
+    for(int i=0; i<7; ++i) {
+      std::array<std::complex<T>,N*N> hti;
+      for(int j=0; j<N*N; ++j) {hti[j] = H[j] - theta[i] * I[j];}
+      std::array<std::complex<T>,N> ai;
+      for(int j=0; j<N; ++j) {ai[j] = alpha[i] * x[j];}
+      std::array<std::complex<T>,N*N> htiInv;
+      //inv(hti)  Maybe this part could be improved (e.g. Gauss-Newton)
+      std::array<std::complex<T>,N*N> htiDec;
+      Crout<N>(hti, htiDec);
+      std::array<std::complex<T>,N> htiInvc;
+      std::array<std::complex<T>,N> II;
+      for(int j=0; j<N; ++j) {
+	II.fill(0.);
+	II[j] = 1.;
+	solveCrout<N>(htiDec, II, htiInvc);
+	for(int k=0; k<N; ++k) {htiInv[k*N+j] = htiInvc[k];}
+      }
+      MATMUL<N,N,1>(htiInv,ai,ai);
+      for(int j=0; j<N; ++j) {e[j] += ai[j].real();}
     }
   }
 
@@ -108,7 +145,7 @@ namespace yasso {
     theta[31] = -std::fabs(theta[31]);
     theta[34] = -std::fabs(theta[34]);
     for(int i=0; i<4; ++i) {theta[i] = -std::fabs(theta[i]);}
-    //aNeedToBeSet=true;
+    aNeedToBeSet=true;
   }
 
   void yasso15::setClimSizeLeach(const double& avgT, const double& sumP, const double& ampT, const double& diam, const double& leach) {
@@ -179,20 +216,21 @@ namespace yasso {
       const double aux = leach * m3;
       for(int i=0; i<4; ++i) {A[6*i] += aux;}
     }
-    //aNeedToBeSet=false;
+    aNeedToBeSet=false;
     aNeedToBeDecomp=true;
     aNeedToBeExpo=true;
   }
 
-  void yasso15::getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result, const int years) {
-    // if(aNeedToBeSet) {
-    //   for(int i=0; i<5; ++i) {
-    // 	result[i] = std::numeric_limits<double>::quiet_NaN();
-    //   }
-    // } else {
+  void yasso15::getSpin(const std::array<double, 5>& infall, std::array<double, 5>& result) {
+    if(aNeedToBeSet) {
+      for(int i=0; i<5; ++i) {
+	result[i] = std::numeric_limits<double>::quiet_NaN();
+      }
+    } else {
       if(noDecomposition) {
 	for(int i=0; i<5; ++i) {
-	  result[i] = years * infall[i];
+	  if(infall[i] > 0.) {result[i] = std::numeric_limits<double>::infinity();
+	  } else {result[i] = 0.;}
 	}
       } else {
 	if(aNeedToBeDecomp) {
@@ -202,7 +240,7 @@ namespace yasso {
 	solveCrout<5>(Adecomp, infall, result);
 	for(int i=0; i<5; ++i) {result[i] *= -1.;}
       }
-      //}
+    }
   }
 
   void yasso15::setTimespan(const double& atimespan) {
@@ -215,12 +253,12 @@ namespace yasso {
     return(taylorTerms-1);
   }
 
-  void yasso15::getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result) {
-    // if(aNeedToBeSet) {
-    //   for(int i=0; i<5; ++i) {
-    // 	result[i] = std::numeric_limits<double>::quiet_NaN();
-    //   }
-    // } else {
+  void yasso15::getNextTimestep(const std::array<double, 5>& init, const std::array<double, 5>& infall, std::array<double, 5>& result, const int fun) {
+    if(aNeedToBeSet) {
+      for(int i=0; i<5; ++i) {
+	result[i] = std::numeric_limits<double>::quiet_NaN();
+      }
+    } else {
       if(noDecomposition) {
 	for(int i=0; i<5; ++i) {result[i] += infall[i];}
 	return;
@@ -228,18 +266,21 @@ namespace yasso {
       //Solve the differential equation x'(t) = A(theta)*x(t) + b, x(0) = init
       //Solve DE in given time
       //Solve Matrix Differential equation Taylor x'(t) = Ax(t) + b
-	std::array<double, 5> z1;
 	MATMUL<5,5,1>(A,init,z1);
 	for(int i=0; i<5; ++i) {z1[i] += infall[i];}
-	if(aNeedToBeExpo) {
-	  std::array<double, 5*5> At;
-	  for(int i=0; i<5*5; ++i) {At[i] = A[i] * timespan;}
-	  mexpAt.fill(0.);
-	  matrixexp<5>(At, mexpAt, taylorTerms);
-	  aNeedToBeExpo = false;
+	for(int i=0; i<5*5; ++i) {At[i] = A[i] * timespan;}
+	switch(fun) {
+	case 1: //Using Expokit
+	  dgchbv<5>(At, z1, z2);
+	  break;
+	default: //Use default function from Yasso15
+	  if(aNeedToBeExpo) {
+	    mexpAt.fill(0.);
+	    matrixexp(At, mexpAt, taylorTerms);
+	    aNeedToBeExpo = false;
+	  }
+	  MATMUL<5,5,1>(mexpAt,z1,z2);
 	}
-	std::array<double, 5> z2;
-	MATMUL<5,5,1>(mexpAt,z1,z2);
 	for(int i=0; i<5; ++i) {z2[i] -= infall[i];}
 	if(aNeedToBeDecomp) {
 	  Crout<5>(A, Adecomp);
@@ -247,7 +288,7 @@ namespace yasso {
 	}
 	solveCrout<5>(Adecomp, z2, result);
       }
-      // }
+    }
   }
 
 }

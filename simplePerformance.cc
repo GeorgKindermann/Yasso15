@@ -1,11 +1,9 @@
 #define METHOD 1
-#define CPPMETHOD 0
 #define VARIATECLIMA 1
 #define VARIATEINFALL 1
 #define NTAYLOR 6
 //#define SPINNUP
 //METHOD 0..Original, 1..CPP
-//CPPMETHOD 0..talor, 1..Expokit
 //VARIATECLIMA 0..no, 1..yes
 //VARIATEINFALL 0..no, 1..yes
 //NTAYLOR .. number of taylor iterations: orig=10, practical=6
@@ -42,7 +40,7 @@ int main() {
   float infall2[5] {0.5,0.1,0.1,0.2,0.};
   float climate2[3] {10., 600., 12.};
 #elif METHOD == 1
-  cout << "CPP Version using function:" << CPPMETHOD << " nTaylor:" << NTAYLOR << endl;
+  cout << " nTaylor:" << NTAYLOR << endl;
   array<double, 35> theta = {0.49,4.9,0.24,0.095,0.44,0.25,0.92,0.99,0.084,0.011,0.00061,0.00048,0.066,0.00077,0.1,0.65,-0.15,-0.02,-0.92,-0.0004,-0.00017,0.091,-0.00021,0.049,-7.90E-05,0.035,-0.00021,-1.8,-1.2,-13,0.0046,0.0013,-0.44,1.3,0.26};
   double time {1.};
   double avgT = 10.;
@@ -53,7 +51,6 @@ int main() {
   array<double, 5> result;
   double diam {2.};
   double leach {0.};
-  int fun = CPPMETHOD;
   array<double, 5> infall2 {0.5,0.1,0.1,0.2,0.};
   double avgT2 = 10.;
   int nTayler = NTAYLOR;
@@ -93,7 +90,7 @@ int main() {
   #ifdef SPINNUP
     yasso.getSpin(infall2, result);
   #else
-    yasso.getNextTimestep(init, infall2, init, fun);
+    yasso.getNextTimestep(init, infall2, init);
   #endif
 #endif
 #ifdef SPINNUP
